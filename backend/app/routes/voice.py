@@ -6,7 +6,7 @@ from fastapi import (
     Depends,
 )
 
-import whisper
+from elevenlabs.client import ElevenLabs
 import tempfile
 import os
 
@@ -27,10 +27,12 @@ router = APIRouter(
 
 
 # =========================================================
-# LOAD WHISPER SMALL MODEL
+# ELEVENLABS CLIENT
 # =========================================================
 
-model = whisper.load_model("small")
+elevenlabs_client = ElevenLabs(
+    api_key=os.getenv("ELEVENLABS_API_KEY")
+)
 
 
 # =========================================================
@@ -80,31 +82,19 @@ async def transcribe(
 
 
         # =====================================================
-        # WHISPER SPEECH-TO-TEXT
+        # ELEVENLABS SPEECH-TO-TEXT
         # =====================================================
 
-        result = model.transcribe(
-            temp_path,
+        with open(temp_path, "rb") as audio_file:
 
-            fp16=False,
-
-            language=None,
-
-            task="transcribe",
-
-            temperature=0,
-
-            best_of=5,
-
-            beam_size=5,
-
-            condition_on_previous_text=False,
-
-            verbose=False,
-        )
+            result = elevenlabs_client.speech_to_text.convert(
+                file=audio_file,
+                model_id="scribe_v1",
+                language_code=None,
+            )
 
 
-        text = result["text"].strip()
+        text = result.text.strip()
 
 
         if not text:
@@ -226,7 +216,7 @@ IMPORTANT SYSTEM RULES:
 
             "user_id": current_user.id,
 
-            "language": result.get("language"),
+            "language": getattr(result, "language_code", None),
 
             "text": text,
 
