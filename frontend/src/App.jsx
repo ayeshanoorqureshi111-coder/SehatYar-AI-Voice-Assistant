@@ -4,6 +4,12 @@ import { useRef, useState } from "react";
 function App() {
 
   // =====================================================
+  // CONFIG
+  // =====================================================
+
+  const API_URL = "https://sehatyar-ai-voice-assistant.onrender.com";
+
+  // =====================================================
   // LOGIN STATES
   // =====================================================
 
@@ -46,7 +52,6 @@ function App() {
       return;
     }
 
-    // Check browser support
     if (!("speechSynthesis" in window)) {
 
       setError(
@@ -56,14 +61,11 @@ function App() {
       return;
     }
 
-    // Stop previous speech
     window.speechSynthesis.cancel();
 
-    // Create speech
     const speech =
       new SpeechSynthesisUtterance(message);
 
-    // Voice settings
     speech.lang = "en-US";
 
     speech.rate = 0.95;
@@ -72,7 +74,6 @@ function App() {
 
     speech.volume = 1;
 
-    // Speak
     window.speechSynthesis.speak(speech);
   };
 
@@ -105,7 +106,6 @@ function App() {
 
     try {
 
-      // FastAPI OAuth2 requires form data
       const formData = new URLSearchParams();
 
       formData.append(
@@ -118,9 +118,8 @@ function App() {
         password
       );
 
-      // Login request
       const res = await fetch(
-        "http://127.0.0.1:8000/auth/login",
+        `${API_URL}/auth/login`,
         {
           method: "POST",
 
@@ -135,7 +134,6 @@ function App() {
 
       const data = await res.json();
 
-      // Check response
       if (!res.ok) {
 
         throw new Error(
@@ -145,7 +143,6 @@ function App() {
 
       }
 
-      // Save token
       localStorage.setItem(
         "access_token",
         data.access_token
@@ -182,10 +179,8 @@ function App() {
 
   const handleLogout = () => {
 
-    // Stop speech
     stopSpeaking();
 
-    // Stop recording if active
     if (
       mediaRecorderRef.current &&
       mediaRecorderRef.current.state !== "inactive"
@@ -195,14 +190,12 @@ function App() {
 
     }
 
-    // Remove token
     localStorage.removeItem(
       "access_token"
     );
 
     setToken("");
 
-    // Clear states
     setText("");
 
     setResponse("");
@@ -226,12 +219,10 @@ function App() {
 
     setResponse("");
 
-    // Stop any previous speech
     stopSpeaking();
 
     try {
 
-      // Ask microphone permission
       const stream =
         await navigator.mediaDevices.getUserMedia(
           {
@@ -246,10 +237,6 @@ function App() {
             },
           }
         );
-
-      // =================================================
-      // CHOOSE AUDIO MIME TYPE
-      // =================================================
 
       let mimeType = "";
 
@@ -282,11 +269,6 @@ function App() {
 
       }
 
-
-      // =================================================
-      // CREATE MEDIA RECORDER
-      // =================================================
-
       const recorder =
         mimeType
           ? new MediaRecorder(
@@ -300,11 +282,6 @@ function App() {
         recorder;
 
       audioChunksRef.current = [];
-
-
-      // =================================================
-      // WHEN AUDIO DATA ARRIVES
-      // =================================================
 
       recorder.ondataavailable = (
         event
@@ -323,14 +300,8 @@ function App() {
 
       };
 
-
-      // =================================================
-      // WHEN RECORDING STOPS
-      // =================================================
-
       recorder.onstop = async () => {
 
-        // Stop microphone tracks
         stream
           .getTracks()
           .forEach(
@@ -338,8 +309,6 @@ function App() {
               track.stop()
           );
 
-
-        // Create audio blob
         const audioBlob =
           new Blob(
             audioChunksRef.current,
@@ -350,18 +319,11 @@ function App() {
             }
           );
 
-
-        // Send audio to backend
         await sendAudioToBackend(
           audioBlob
         );
 
       };
-
-
-      // =================================================
-      // START
-      // =================================================
 
       recorder.start();
 
@@ -419,10 +381,6 @@ function App() {
 
       try {
 
-        // =================================================
-        // CREATE FORM DATA
-        // =================================================
-
         const formData =
           new FormData();
 
@@ -432,14 +390,9 @@ function App() {
           "voice.webm"
         );
 
-
-        // =================================================
-        // SEND REQUEST
-        // =================================================
-
         const res =
           await fetch(
-            "http://127.0.0.1:8000/voice/transcribe",
+            `${API_URL}/voice/transcribe`,
             {
               method: "POST",
 
@@ -452,18 +405,8 @@ function App() {
             }
           );
 
-
-        // =================================================
-        // READ RESPONSE
-        // =================================================
-
         const data =
           await res.json();
-
-
-        // =================================================
-        // ERROR CHECK
-        // =================================================
 
         if (!res.ok) {
 
@@ -474,38 +417,21 @@ function App() {
 
         }
 
-
-        // =================================================
-        // USER TRANSCRIPTION
-        // =================================================
-
         setText(
           data.text || ""
         );
-
-
-        // =================================================
-        // AI RESPONSE
-        // =================================================
 
         const aiResponse =
           data.response ||
           "I received your message, but no AI response was returned.";
 
-
         setResponse(
           aiResponse
         );
 
-
-        // =================================================
-        // SPEAK AI RESPONSE
-        // =================================================
-
         speakResponse(
           aiResponse
         );
-
 
       } catch (err) {
 
@@ -570,7 +496,6 @@ function App() {
             SehatYar
           </h1>
 
-
           <p
             style={{
               textAlign: "center",
@@ -581,12 +506,9 @@ function App() {
             AI Voice Assistant
           </p>
 
-
           <form
             onSubmit={handleLogin}
           >
-
-            {/* EMAIL */}
 
             <label
               style={{
@@ -597,7 +519,6 @@ function App() {
             >
               Email
             </label>
-
 
             <input
               type="email"
@@ -619,9 +540,6 @@ function App() {
               }}
             />
 
-
-            {/* PASSWORD */}
-
             <label
               style={{
                 display: "block",
@@ -631,7 +549,6 @@ function App() {
             >
               Password
             </label>
-
 
             <input
               type="password"
@@ -653,9 +570,6 @@ function App() {
               }}
             />
 
-
-            {/* ERROR */}
-
             {error && (
 
               <div
@@ -672,9 +586,6 @@ function App() {
               </div>
 
             )}
-
-
-            {/* LOGIN BUTTON */}
 
             <button
               type="submit"
@@ -737,10 +648,6 @@ function App() {
         }}
       >
 
-        {/* =================================================
-            HEADER
-        ================================================= */}
-
         <div
           style={{
             background: "white",
@@ -779,7 +686,6 @@ function App() {
 
           </div>
 
-
           <button
             onClick={handleLogout}
             style={{
@@ -798,11 +704,6 @@ function App() {
 
         </div>
 
-
-        {/* =================================================
-            MAIN CARD
-        ================================================= */}
-
         <div
           style={{
             background: "white",
@@ -812,10 +713,6 @@ function App() {
               "0 5px 20px rgba(0,0,0,0.08)",
           }}
         >
-
-          {/* =================================================
-              INSTRUCTION
-          ================================================= */}
 
           <div
             style={{
@@ -843,11 +740,6 @@ function App() {
             </p>
 
           </div>
-
-
-          {/* =================================================
-              MICROPHONE BUTTON
-          ================================================= */}
 
           <div
             style={{
@@ -894,11 +786,6 @@ function App() {
 
           </div>
 
-
-          {/* =================================================
-              RECORDING STATUS
-          ================================================= */}
-
           <div
             style={{
               textAlign: "center",
@@ -918,11 +805,6 @@ function App() {
               : "Click the microphone and speak"}
 
           </div>
-
-
-          {/* =================================================
-              STOP SPEAKING BUTTON
-          ================================================= */}
 
           {response && (
 
@@ -955,11 +837,6 @@ function App() {
 
           )}
 
-
-          {/* =================================================
-              ERROR MESSAGE
-          ================================================= */}
-
           {error && (
 
             <div
@@ -975,11 +852,6 @@ function App() {
             </div>
 
           )}
-
-
-          {/* =================================================
-              USER SAID
-          ================================================= */}
 
           {text && (
 
@@ -1016,11 +888,6 @@ function App() {
             </div>
 
           )}
-
-
-          {/* =================================================
-              AI RESPONSE
-          ================================================= */}
 
           {response && (
 
@@ -1059,11 +926,6 @@ function App() {
           )}
 
         </div>
-
-
-        {/* =================================================
-            FOOTER
-        ================================================= */}
 
         <p
           style={{
